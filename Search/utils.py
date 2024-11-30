@@ -119,8 +119,12 @@ def exportar_para_csv():
     # Cria DataFrame com os dados
     df = pd.DataFrame(dados, columns=colunas)
 
+
+    # Define o caminho para salvar o arquivo
+    pasta_destino = obter_pasta_documentos()
+    nome_arquivo = os.path.join(pasta_destino, "estabelecimentos.csv")
+    
     # Exporta para CSV
-    nome_arquivo = "estabelecimentos.csv"
     df.to_csv(nome_arquivo, index=False, sep=";", encoding="utf-8")
     print(f"\nArquivo CSV exportado com sucesso: {nome_arquivo}")
 
