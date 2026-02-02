@@ -5,6 +5,15 @@ from utils import exportar_para_excel, exportar_para_csv
 #Para fazer requisições
 import requests
 import os
+import sys
+
+if os.name == "nt":
+    try:
+        os.system("chcp 65001 > nul")
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 # Função para verificar a conexão com a internet
 def verificar_conexao():

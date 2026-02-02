@@ -24,6 +24,7 @@ app.add_middleware(
 class SearchRequest(BaseModel):
     city: str = Field(..., min_length=1)
     query: str = Field(..., min_length=1)
+    state: str | None = Field(default=None)
     limit: int | None = Field(default=20, ge=1, le=50)
 
 
@@ -34,7 +35,8 @@ class ExportRequest(BaseModel):
 
 @app.post("/api/search")
 def start_search(payload: SearchRequest):
-    job_id = create_job(payload.city.strip(), payload.query.strip(), payload.limit)
+    state = payload.state.strip() if payload.state else None
+    job_id = create_job(payload.city.strip(), payload.query.strip(), state, payload.limit)
     return {"jobId": job_id}
 
 

@@ -14,6 +14,7 @@ import searcher  # noqa: E402
 def run_search(
     city: str,
     query: str,
+    state: Optional[str] = None,
     limit: Optional[int] = None,
     progress_cb: Optional[Callable[[int, Optional[int]], None]] = None,
     should_cancel: Optional[Callable[[], bool]] = None,
@@ -21,6 +22,7 @@ def run_search(
     return searcher.buscar_estabelecimentos(
         city,
         query,
+        state=state,
         limit=limit,
         progress_cb=progress_cb,
         should_cancel=should_cancel,

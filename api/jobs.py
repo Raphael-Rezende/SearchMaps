@@ -78,7 +78,7 @@ def _is_canceled(job_id: str) -> bool:
     return bool(job and job.get("status") == "canceled")
 
 
-def create_job(city: str, query: str, limit: Optional[int]) -> str:
+def create_job(city: str, query: str, state: Optional[str], limit: Optional[int]) -> str:
     job_id = uuid.uuid4().hex
     effective_limit = limit or 20
     effective_limit = max(1, min(effective_limit, 50))
@@ -87,7 +87,7 @@ def create_job(city: str, query: str, limit: Optional[int]) -> str:
         "status": "queued",
         "progress": 0,
         "message": "Na fila.",
-        "params": {"city": city, "query": query, "limit": effective_limit},
+        "params": {"city": city, "query": query, "state": state, "limit": effective_limit},
         "results": [],
         "createdAt": _now_iso(),
         "error": None,
@@ -131,6 +131,7 @@ def _run_job(job_id: str) -> None:
             params = job.get("params", {})
             city = params.get("city")
             query = params.get("query")
+            state = params.get("state")
             limit = params.get("limit")
 
             def progress_cb(collected: int, limit_value: Optional[int]) -> None:
@@ -151,6 +152,7 @@ def _run_job(job_id: str) -> None:
             results = run_search(
                 city=city,
                 query=query,
+                state=state,
                 limit=limit,
                 progress_cb=progress_cb,
                 should_cancel=should_cancel,

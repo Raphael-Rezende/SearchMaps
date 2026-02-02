@@ -25,17 +25,29 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 options = webdriver.ChromeOptions()
 options.add_argument("--headless")  # Executa em modo headless (sem interface gráfica)
 options.add_argument("--disable-gpu")
+options.add_argument("--window-size=1920,1080")
+options.add_argument("--disable-dev-shm-usage")
+options.add_argument("--lang=pt-BR")
 options.add_argument("--log-level=3")  # Apenas erros
 options.add_argument("--no-sandbox")
 options.add_experimental_option("excludeSwitches", ["enable-logging"])  # Remove logs de warning
 driver = webdriver.Chrome(options=options) # Suprime logs do driver
 
 # Função para buscar estabelecimentos em uma cidade
-def buscar_estabelecimentos(cidade, tipo_estabelecimento, limit=None, progress_cb=None, should_cancel=None, return_dicts=False):
+def buscar_estabelecimentos(
+    cidade,
+    tipo_estabelecimento,
+    state=None,
+    limit=None,
+    progress_cb=None,
+    should_cancel=None,
+    return_dicts=False,
+):
     """
     Busca estabelecimentos no Google Maps.
     :param cidade: Cidade para busca.
     :param tipo_estabelecimento: Tipo de estabelecimento.
+    :param state: Estado/UF opcional para refinar a busca.
     :param limit: Limite máximo de resultados (None para ilimitado).
     :param progress_cb: Callback opcional para progresso (recebe contagem atual e limite).
     :param should_cancel: Callback opcional para cancelamento (retorna True para cancelar).
@@ -49,7 +61,10 @@ def buscar_estabelecimentos(cidade, tipo_estabelecimento, limit=None, progress_c
         EC.presence_of_element_located((By.XPATH, "//input[@id='searchboxinput']"))
     )
     search_box.clear()
-    search_box.send_keys(f"{tipo_estabelecimento} em {cidade}")
+    location = cidade
+    if state:
+        location = f"{cidade}, {state}"
+    search_box.send_keys(f"{tipo_estabelecimento} em {location}")
     search_box.send_keys(Keys.RETURN)
 
     time.sleep(3)  # Aguarda a página carregar os resultados

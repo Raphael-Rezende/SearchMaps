@@ -11,6 +11,7 @@ export default function Home() {
 
   const [city, setCity] = useState("");
   const [query, setQuery] = useState("");
+  const [state, setState] = useState("");
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
   const [jobId, setJobId] = useState("");
   const [status, setStatus] = useState(null);
@@ -29,7 +30,7 @@ export default function Home() {
       try {
         const response = await fetch(`${apiBase}/api/status/${jobId}`);
         if (!response.ok) {
-          throw new Error("N?o foi poss?vel obter o status do job.");
+          throw new Error("Não foi possível obter o status do job.");
         }
 
         const data = await response.json();
@@ -63,7 +64,7 @@ export default function Home() {
     try {
       const response = await fetch(`${apiBase}/api/results/${currentJobId}`);
       if (!response.ok) {
-        throw new Error("N?o foi poss?vel obter os resultados.");
+        throw new Error("Não foi possível obter os resultados.");
       }
       const data = await response.json();
       setResults(data.results || []);
@@ -81,7 +82,7 @@ export default function Home() {
     setTotal(0);
 
     if (!city.trim() || !query.trim()) {
-      setError("Cidade e tipo de neg?cio s?o obrigat?rios.");
+      setError("Cidade e tipo de negócio são obrigatórios.");
       return;
     }
 
@@ -96,12 +97,13 @@ export default function Home() {
         body: JSON.stringify({
           city: city.trim(),
           query: query.trim(),
+          state: state.trim() || null,
           limit: safeLimit,
         }),
       });
 
       if (!response.ok) {
-        throw new Error("N?o foi poss?vel iniciar a busca.");
+        throw new Error("Não foi possível iniciar a busca.");
       }
 
       const data = await response.json();
@@ -109,7 +111,7 @@ export default function Home() {
       setStatus({
         status: "queued",
         progress: 0,
-        message: "Job criado. Aguardando execu??o...",
+        message: "Job criado. Aguardando execução...",
       });
     } catch (err) {
       setError(err.message || "Erro ao iniciar busca.");
@@ -152,7 +154,7 @@ export default function Home() {
     try {
       await fetch(`${apiBase}/api/cancel/${jobId}`, { method: "POST" });
     } catch (err) {
-      setError("N?o foi poss?vel cancelar o job.");
+      setError("Não foi possível cancelar o job.");
     }
   };
 
@@ -166,7 +168,7 @@ export default function Home() {
           <p className={styles.kicker}>SearchMaps DEMO</p>
           <h1>Busca de estabelecimentos no Google Maps</h1>
           <p className={styles.subtitle}>
-            Demo p?blica sem banco de dados. Resultados ficam em mem?ria por job e voc?
+            Demo pública sem banco de dados. Resultados ficam em memória por job e você
             pode exportar em CSV ou Excel.
           </p>
         </header>
@@ -178,7 +180,7 @@ export default function Home() {
               <input
                 id="city"
                 type="text"
-                placeholder="Ex: S?o Paulo, SP"
+                placeholder="Ex: São Paulo, SP"
                 value={city}
                 onChange={(event) => setCity(event.target.value)}
                 required
@@ -186,14 +188,25 @@ export default function Home() {
             </div>
 
             <div className={styles.field}>
-              <label htmlFor="query">Tipo de neg?cio</label>
+              <label htmlFor="query">Tipo de negócio</label>
               <input
                 id="query"
                 type="text"
-                placeholder="Ex: pizzarias, cl?nicas, hot?is"
+                placeholder="Ex: pizzarias, clínicas, hotéis"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 required
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="state">Estado (UF)</label>
+              <input
+                id="state"
+                type="text"
+                placeholder="Ex: SP, RJ, MG"
+                value={state}
+                onChange={(event) => setState(event.target.value)}
               />
             </div>
 
@@ -207,7 +220,7 @@ export default function Home() {
                 value={limit}
                 onChange={(event) => setLimit(event.target.value)}
               />
-              <span className={styles.helper}>M?ximo de {MAX_LIMIT} resultados por job.</span>
+              <span className={styles.helper}>Máximo de {MAX_LIMIT} resultados por job.</span>
             </div>
 
             <div className={styles.actions}>
@@ -266,7 +279,7 @@ export default function Home() {
               <thead>
                 <tr>
                   <th>Nome</th>
-                  <th>Endere?o</th>
+                  <th>Endereço</th>
                   <th>Telefone</th>
                   <th>Delivery</th>
                   <th>Website</th>
