@@ -4,11 +4,13 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 import warnings
 
 import time
 import os
+from urllib.parse import quote_plus
 #Manipulação de dados
 import pandas as pd
 import shutil
@@ -33,6 +35,61 @@ options.add_argument("--no-sandbox")
 options.add_experimental_option("excludeSwitches", ["enable-logging"])  # Remove logs de warning
 driver = webdriver.Chrome(options=options) # Suprime logs do driver
 
+def _accept_consent_if_present():
+    consent_texts = [
+        "Aceitar tudo",
+        "Aceitar",
+        "Concordo",
+        "I agree",
+        "Accept all",
+        "Agree",
+        "Yes, I agree",
+    ]
+
+    def try_click_buttons():
+        buttons = driver.find_elements(By.TAG_NAME, "button")
+        for button in buttons:
+            label = f"{button.text} {button.get_attribute('aria-label') or ''}".strip()
+            if not label:
+                continue
+            lower_label = label.lower()
+            if any(text.lower() in lower_label for text in consent_texts):
+                try:
+                    button.click()
+                    time.sleep(1)
+                    return True
+                except Exception:
+                    try:
+                        driver.execute_script("arguments[0].click();", button)
+                        time.sleep(1)
+                        return True
+                    except Exception:
+                        continue
+        return False
+
+    if try_click_buttons():
+        return True
+
+    iframes = driver.find_elements(By.TAG_NAME, "iframe")
+    for iframe in iframes:
+        try:
+            driver.switch_to.frame(iframe)
+            if try_click_buttons():
+                driver.switch_to.default_content()
+                return True
+            driver.switch_to.default_content()
+        except Exception:
+            driver.switch_to.default_content()
+            continue
+
+    return False
+
+
+def _wait_for_results(timeout=20):
+    return WebDriverWait(driver, timeout).until(
+        EC.presence_of_element_located((By.CLASS_NAME, "Nv2PK"))
+    )
+
 # Função para buscar estabelecimentos em uma cidade
 def buscar_estabelecimentos(
     cidade,
@@ -53,21 +110,30 @@ def buscar_estabelecimentos(
     :param should_cancel: Callback opcional para cancelamento (retorna True para cancelar).
     :param return_dicts: Se True, retorna lista de dicts; caso contrário, lista de listas compatível com SQLite.
     """
-    url_base = "https://www.google.com/maps"
-    driver.get(url_base)
-
-    # Aguarda o campo de busca aparecer e faz a busca pela cidade e o tipo de estabelecimento
-    search_box = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.XPATH, "//input[@id='searchboxinput']"))
-    )
-    search_box.clear()
     location = cidade
     if state:
         location = f"{cidade}, {state}"
-    search_box.send_keys(f"{tipo_estabelecimento} em {location}")
-    search_box.send_keys(Keys.RETURN)
 
-    time.sleep(3)  # Aguarda a página carregar os resultados
+    search_term = f"{tipo_estabelecimento} em {location}"
+    search_url = f"https://www.google.com/maps/search/{quote_plus(search_term)}"
+    driver.get(search_url)
+
+    _accept_consent_if_present()
+
+    try:
+        _wait_for_results(timeout=20)
+    except TimeoutException:
+        # Fallback: tenta usar o campo de busca manualmente
+        try:
+            search_box = WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.XPATH, "//input[@id='searchboxinput']"))
+            )
+            search_box.clear()
+            search_box.send_keys(search_term)
+            search_box.send_keys(Keys.RETURN)
+            time.sleep(3)
+        except TimeoutException:
+            raise
 
     estabelecimentos = []
     collected_count = 0

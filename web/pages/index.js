@@ -176,18 +176,6 @@ export default function Home() {
         <section className={styles.card}>
           <form className={styles.form} onSubmit={handleSubmit}>
             <div className={styles.field}>
-              <label htmlFor="city">Cidade</label>
-              <input
-                id="city"
-                type="text"
-                placeholder="Ex: São Paulo, SP"
-                value={city}
-                onChange={(event) => setCity(event.target.value)}
-                required
-              />
-            </div>
-
-            <div className={styles.field}>
               <label htmlFor="query">Tipo de negócio</label>
               <input
                 id="query"
@@ -207,6 +195,18 @@ export default function Home() {
                 placeholder="Ex: SP, RJ, MG"
                 value={state}
                 onChange={(event) => setState(event.target.value)}
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="city">Cidade</label>
+              <input
+                id="city"
+                type="text"
+                placeholder="Ex: São Paulo"
+                value={city}
+                onChange={(event) => setCity(event.target.value)}
+                required
               />
             </div>
 
