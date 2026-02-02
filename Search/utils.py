@@ -146,3 +146,52 @@ def obter_pasta_documentos():
     data_maps_pasta.mkdir(parents=True, exist_ok=True)
 
     return data_maps_pasta
+
+
+def exportar_lista_para_excel(dados, destino, colunas=None):
+    """
+    Exporta uma lista de dicionÃ¡rios para um arquivo Excel em um caminho especÃ­fico.
+    :param dados: Lista de dicionÃ¡rios.
+    :param destino: Caminho do arquivo .xlsx.
+    :param colunas: Lista opcional de colunas em ordem preferida.
+    """
+    if not dados:
+        raise ValueError("Nenhum dado para exportar.")
+
+    df = pd.DataFrame(dados)
+    if colunas:
+        colunas_existentes = [col for col in colunas if col in df.columns]
+        if colunas_existentes:
+            df = df[colunas_existentes]
+
+    destino = Path(destino)
+    destino.parent.mkdir(parents=True, exist_ok=True)
+
+    with pd.ExcelWriter(destino, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Estabelecimentos")
+        worksheet = writer.sheets["Estabelecimentos"]
+
+        for idx, col in enumerate(df.columns):
+            largura = max(df[col].astype(str).map(len).max(), len(col)) + 2
+            worksheet.set_column(idx, idx, largura)
+
+
+def exportar_lista_para_csv(dados, destino, colunas=None):
+    """
+    Exporta uma lista de dicionÃ¡rios para um arquivo CSV em um caminho especÃ­fico.
+    :param dados: Lista de dicionÃ¡rios.
+    :param destino: Caminho do arquivo .csv.
+    :param colunas: Lista opcional de colunas em ordem preferida.
+    """
+    if not dados:
+        raise ValueError("Nenhum dado para exportar.")
+
+    df = pd.DataFrame(dados)
+    if colunas:
+        colunas_existentes = [col for col in colunas if col in df.columns]
+        if colunas_existentes:
+            df = df[colunas_existentes]
+
+    destino = Path(destino)
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(destino, index=False, sep=";", encoding="utf-8")

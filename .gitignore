@@ -1,0 +1,35 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+.env/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+*.log
+
+# Local env files
+.env.local
+.env.*.local
+
+# Exports
+exports/
+
+# SQLite
+*.db
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db

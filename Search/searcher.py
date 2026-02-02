@@ -31,7 +31,16 @@ options.add_experimental_option("excludeSwitches", ["enable-logging"])  # Remove
 driver = webdriver.Chrome(options=options) # Suprime logs do driver
 
 # Função para buscar estabelecimentos em uma cidade
-def buscar_estabelecimentos(cidade, tipo_estabelecimento):
+def buscar_estabelecimentos(cidade, tipo_estabelecimento, limit=None, progress_cb=None, should_cancel=None, return_dicts=False):
+    """
+    Busca estabelecimentos no Google Maps.
+    :param cidade: Cidade para busca.
+    :param tipo_estabelecimento: Tipo de estabelecimento.
+    :param limit: Limite máximo de resultados (None para ilimitado).
+    :param progress_cb: Callback opcional para progresso (recebe contagem atual e limite).
+    :param should_cancel: Callback opcional para cancelamento (retorna True para cancelar).
+    :param return_dicts: Se True, retorna lista de dicts; caso contrário, lista de listas compatível com SQLite.
+    """
     url_base = "https://www.google.com/maps"
     driver.get(url_base)
 
@@ -46,15 +55,24 @@ def buscar_estabelecimentos(cidade, tipo_estabelecimento):
     time.sleep(3)  # Aguarda a página carregar os resultados
 
     estabelecimentos = []
+    collected_count = 0
+    if isinstance(limit, int) and limit <= 0:
+        limit = None
     scroll_pause_time = 2  # Tempo de pausa para carregamento dos resultados
     prev_height = 0
 
     while True:
         try:
+            if should_cancel and should_cancel():
+                return estabelecimentos
             # Encontra os resultados listados na página
             elementos = driver.find_elements(By.CLASS_NAME, "Nv2PK")
+            if not elementos:
+                break
             for elem in elementos[prev_height:]:
                 try:
+                    if should_cancel and should_cancel():
+                        return estabelecimentos
                     elem.click()
                     time.sleep(1)
                     endereco = ''
@@ -63,6 +81,7 @@ def buscar_estabelecimentos(cidade, tipo_estabelecimento):
                     ifood = ''
                     menu = ''
                     nome = driver.find_element(By.CLASS_NAME, "DUwDvf").text
+                    maps_url = driver.current_url
                     infos = driver.find_elements(By.CLASS_NAME, "AeaXub")
                     for info in infos:
                         span = info.find_element(By.TAG_NAME, "span").text
@@ -76,8 +95,27 @@ def buscar_estabelecimentos(cidade, tipo_estabelecimento):
                             menu = info.text
                         elif span == '\ue80b':
                             website = info.text
-                    
-                    estabelecimentos.append([cidade, tipo_estabelecimento, nome, endereco, ifood, phone, menu, website])
+
+                    if return_dicts:
+                        estabelecimentos.append({
+                            "city": cidade,
+                            "query": tipo_estabelecimento,
+                            "name": nome,
+                            "address": endereco,
+                            "delivery": ifood,
+                            "phone": phone,
+                            "menu": menu,
+                            "website": website,
+                            "maps_url": maps_url,
+                        })
+                    else:
+                        estabelecimentos.append([cidade, tipo_estabelecimento, nome, endereco, ifood, phone, menu, website])
+
+                    collected_count += 1
+                    if progress_cb:
+                        progress_cb(collected_count, limit)
+                    if limit and collected_count >= limit:
+                        return estabelecimentos
                 except Exception as e:
                     print(f"Erro ao extrair dados: {e}")
             
