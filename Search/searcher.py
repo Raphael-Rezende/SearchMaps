@@ -10,6 +10,7 @@ import warnings
 
 import time
 import os
+from datetime import datetime
 from urllib.parse import quote_plus
 #Manipulação de dados
 import pandas as pd
@@ -24,16 +25,36 @@ from tabulate import tabulate  # Para exibir os dados formatados no terminal
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 # Configuração do driver do Selenium
+DEBUG = os.getenv("SEARCHMAPS_DEBUG", "").strip().lower() in ("1", "true", "yes", "on")
+
 options = webdriver.ChromeOptions()
-options.add_argument("--headless")  # Executa em modo headless (sem interface gráfica)
+if not DEBUG:
+    options.add_argument("--headless")  # Executa em modo headless (sem interface gráfica)
 options.add_argument("--disable-gpu")
 options.add_argument("--window-size=1920,1080")
 options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--lang=pt-BR")
-options.add_argument("--log-level=3")  # Apenas erros
+if not DEBUG:
+    options.add_argument("--log-level=3")  # Apenas erros
 options.add_argument("--no-sandbox")
-options.add_experimental_option("excludeSwitches", ["enable-logging"])  # Remove logs de warning
+if not DEBUG:
+    options.add_experimental_option("excludeSwitches", ["enable-logging"])  # Remove logs de warning
 driver = webdriver.Chrome(options=options) # Suprime logs do driver
+
+def _debug_capture(label):
+    if not DEBUG:
+        return
+    try:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        screenshot = f"debug_{label}_{timestamp}.png"
+        html = f"debug_{label}_{timestamp}.html"
+        driver.save_screenshot(screenshot)
+        with open(html, "w", encoding="utf-8") as file:
+            file.write(driver.page_source)
+        print(f"[DEBUG] Capturado: {screenshot} | {html}")
+        print(f"[DEBUG] URL: {driver.current_url}")
+    except Exception as exc:
+        print(f"[DEBUG] Falha ao capturar debug: {exc}")
 
 def _accept_consent_if_present():
     consent_texts = [
@@ -133,6 +154,7 @@ def buscar_estabelecimentos(
             search_box.send_keys(Keys.RETURN)
             time.sleep(3)
         except TimeoutException:
+            _debug_capture("timeout_search")
             raise
 
     estabelecimentos = []
@@ -209,6 +231,7 @@ def buscar_estabelecimentos(
                 break
             prev_height = len(elementos)
         except Exception as e:
+            _debug_capture("loop_error")
             print(f"Erro ao carregar resultados adicionais: {e}")
             break
 
