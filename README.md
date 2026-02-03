@@ -49,7 +49,7 @@ Backend: Render, Railway ou Fly.io
 **Deploy Docker (API + Web juntos)**
 1. Suba o repositório no GitHub.
 2. Crie um Web Service com build via Dockerfile.
-3. Configure a porta exposta (PORT) e deixe `NEXT_PUBLIC_API_BASE_URL` vazio.
+3. Configure a porta exposta (PORT) para o Next (padrão 3000) e deixe `NEXT_PUBLIC_API_BASE_URL` vazio.
 4. Deploy.
 
 **Resumo**

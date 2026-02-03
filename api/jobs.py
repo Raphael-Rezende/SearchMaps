@@ -6,8 +6,8 @@ import unicodedata
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional, Tuple
 
-from core import run_search
-from exporter import export_results
+from api.core import run_search
+from api.exporter import export_results
 
 DEMO_MAX_LIMIT = int(os.getenv("SEARCHMAPS_DEMO_MAX_LIMIT", "10"))
 MAX_QUEUE_JOBS = int(os.getenv("SEARCHMAPS_MAX_QUEUE_JOBS", "2"))

@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from typing import Literal, Optional
 from pathlib import Path
 
-from jobs import (
+from api.jobs import (
     create_job,
     get_status,
     get_results,

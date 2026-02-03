@@ -26,4 +26,4 @@ ENV NEXT_PUBLIC_API_BASE_URL=""
 
 EXPOSE 3000
 
-CMD ["bash", "-lc", "uvicorn api.main:app --host 0.0.0.0 --port 8000 & npm --prefix web run start -- -p ${PORT:-3000}"]
+CMD ["bash", "-lc", "uvicorn api.main:app --host 0.0.0.0 --port 8001 & npm --prefix web run start -- -p ${PORT:-3000}"]
