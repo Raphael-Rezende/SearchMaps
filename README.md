@@ -22,9 +22,16 @@ Web DEMO (stateless): resultados ficam em memória por job, sem SQLite.
 2. `npm install`
 3. `npm run dev`
 
+**Docker (API + Web juntos)**
+1. `docker build -t searchmaps .`
+2. `docker run --rm -p 3000:3000 searchmaps`
+3. Acesse `http://localhost:3000`
+
 **Configuração**
 `web/.env.local`:
 `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`
+
+Para Docker/Deploy com API + Web no mesmo dominio, use `NEXT_PUBLIC_API_BASE_URL=` (vazio).
 
 **Exportações na DEMO**
 Os arquivos CSV/XLSX são gerados em `./exports/` (na raiz do projeto).
@@ -38,6 +45,12 @@ Selenium/Chrome headless pode ter limitações em free-tier.
 **Deploy sugerido**
 Frontend: Vercel
 Backend: Render, Railway ou Fly.io
+
+**Deploy Docker (API + Web juntos)**
+1. Suba o repositório no GitHub.
+2. Crie um Web Service com build via Dockerfile.
+3. Configure a porta exposta (PORT) e deixe `NEXT_PUBLIC_API_BASE_URL` vazio.
+4. Deploy.
 
 **Resumo**
 Terminal = FULL (com SQLite)
