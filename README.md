@@ -33,6 +33,12 @@ Web DEMO (stateless): resultados ficam em memória por job, sem SQLite.
 
 Para Docker/Deploy com API + Web no mesmo dominio, use `NEXT_PUBLIC_API_BASE_URL=` (vazio).
 
+**Configuração (FULL / Terminal)**
+`SEARCHMAPS_MAX_LIMIT=200` (limite máximo por busca no modo local)
+`SEARCHMAPS_SCROLL_MAX_TRIES=60`
+`SEARCHMAPS_SCROLL_STALL_TRIES=8`
+`SEARCHMAPS_BACKOFF_SECONDS=6`
+
 **Exportações na DEMO**
 Os arquivos CSV/XLSX são gerados em `./exports/` (na raiz do projeto).
 
@@ -41,6 +47,12 @@ A versão DEMO não usa SQLite e não mantém histórico persistente. Se o servi
 O limite padrão e máximo na DEMO é 10 resultados por job (configurável via SEARCHMAPS_DEMO_MAX_LIMIT).
 Para evitar travar o servidor, há fila e rate limit por IP (SEARCHMAPS_MAX_QUEUE_JOBS e SEARCHMAPS_RATE_LIMIT_SECONDS).
 Selenium/Chrome headless pode ter limitações em free-tier.
+
+**Testes manuais (FULL)**
+1. Execute o modo Terminal.
+2. Use a busca com cidade `Belo Horizonte` e tipo `restaurantes`.
+3. Defina `SEARCHMAPS_MAX_LIMIT=200` e rode a busca.
+4. Esperado: logs da Fase A/Fase B e coleta até 200 itens (ou até o fim real da lista).
 
 **Deploy sugerido**
 Frontend: Vercel
