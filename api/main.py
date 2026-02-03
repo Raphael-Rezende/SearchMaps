@@ -43,8 +43,8 @@ def _get_client_ip(request: Request) -> Optional[str]:
 class SearchRequest(BaseModel):
     city: str = Field(..., min_length=1)
     query: str = Field(..., min_length=1)
-    state: str | None = Field(default=None)
-    limit: int | None = Field(default=DEMO_MAX_LIMIT, ge=1)
+    state: Optional[str] = Field(default=None)
+    limit: Optional[int] = Field(default=DEMO_MAX_LIMIT, ge=1)
 
 
 class ExportRequest(BaseModel):
