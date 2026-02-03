@@ -1,11 +1,21 @@
-﻿from fastapi import FastAPI, HTTPException
+﻿from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import Literal, Optional
 from pathlib import Path
 
-from jobs import create_job, get_status, get_results, export_job, cancel_job
+from jobs import (
+    create_job,
+    get_status,
+    get_results,
+    export_job,
+    cancel_job,
+    QueueFullError,
+    RateLimitError,
+    LimitExceededError,
+    DEMO_MAX_LIMIT,
+)
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 EXPORT_DIR = BASE_DIR / "exports"
@@ -21,11 +31,20 @@ app.add_middleware(
 )
 
 
+def _get_client_ip(request: Request) -> Optional[str]:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    if request.client:
+        return request.client.host
+    return None
+
+
 class SearchRequest(BaseModel):
     city: str = Field(..., min_length=1)
     query: str = Field(..., min_length=1)
     state: str | None = Field(default=None)
-    limit: int | None = Field(default=20, ge=1, le=50)
+    limit: int | None = Field(default=DEMO_MAX_LIMIT, ge=1)
 
 
 class ExportRequest(BaseModel):
@@ -34,9 +53,26 @@ class ExportRequest(BaseModel):
 
 
 @app.post("/api/search")
-def start_search(payload: SearchRequest):
+def start_search(payload: SearchRequest, request: Request):
     state = payload.state.strip() if payload.state else None
-    job_id = create_job(payload.city.strip(), payload.query.strip(), state, payload.limit)
+    try:
+        job_id = create_job(
+            payload.city.strip(),
+            payload.query.strip(),
+            state,
+            payload.limit,
+            client_ip=_get_client_ip(request),
+        )
+    except LimitExceededError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except (QueueFullError, RateLimitError) as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail="Não foi possível iniciar a busca. Tente novamente em instantes.",
+        ) from exc
+
     return {"jobId": job_id}
 
 

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import styles from "../styles/Home.module.css";
 
-const DEFAULT_LIMIT = 20;
-const MAX_LIMIT = 50;
+const DEFAULT_LIMIT = 10;
+const MAX_LIMIT = 10;
 
 export default function Home() {
   const apiBase = useMemo(() => {
@@ -30,7 +30,14 @@ export default function Home() {
       try {
         const response = await fetch(`${apiBase}/api/status/${jobId}`);
         if (!response.ok) {
-          throw new Error("Não foi possível obter o status do job.");
+          let message = "Não foi possível obter o status do job.";
+          try {
+            const detail = await response.json();
+            if (detail?.detail) message = detail.detail;
+          } catch (err) {
+            // ignore JSON parse errors
+          }
+          throw new Error(message);
         }
 
         const data = await response.json();
@@ -64,7 +71,14 @@ export default function Home() {
     try {
       const response = await fetch(`${apiBase}/api/results/${currentJobId}`);
       if (!response.ok) {
-        throw new Error("Não foi possível obter os resultados.");
+        let message = "Não foi possível obter os resultados.";
+        try {
+          const detail = await response.json();
+          if (detail?.detail) message = detail.detail;
+        } catch (err) {
+          // ignore JSON parse errors
+        }
+        throw new Error(message);
       }
       const data = await response.json();
       setResults(data.results || []);
@@ -103,7 +117,14 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error("Não foi possível iniciar a busca.");
+        let message = "Não foi possível iniciar a busca.";
+        try {
+          const detail = await response.json();
+          if (detail?.detail) message = detail.detail;
+        } catch (err) {
+          // ignore JSON parse errors
+        }
+        throw new Error(message);
       }
 
       const data = await response.json();

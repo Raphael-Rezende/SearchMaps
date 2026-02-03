@@ -1,16 +1,34 @@
-﻿import threading
+﻿import os
+import threading
 import uuid
 import re
 import unicodedata
 from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 
 from core import run_search
 from exporter import export_results
 
+DEMO_MAX_LIMIT = int(os.getenv("SEARCHMAPS_DEMO_MAX_LIMIT", "10"))
+MAX_QUEUE_JOBS = int(os.getenv("SEARCHMAPS_MAX_QUEUE_JOBS", "2"))
+RATE_LIMIT_SECONDS = int(os.getenv("SEARCHMAPS_RATE_LIMIT_SECONDS", "60"))
+
 JOBS: Dict[str, Dict[str, Any]] = {}
 JOBS_LOCK = threading.Lock()
 RUN_LOCK = threading.Lock()
+LAST_REQUEST_BY_IP: Dict[str, datetime] = {}
+
+
+class QueueFullError(Exception):
+    pass
+
+
+class RateLimitError(Exception):
+    pass
+
+
+class LimitExceededError(ValueError):
+    pass
 
 
 def _now_iso() -> str:
@@ -78,10 +96,60 @@ def _is_canceled(job_id: str) -> bool:
     return bool(job and job.get("status") == "canceled")
 
 
-def create_job(city: str, query: str, state: Optional[str], limit: Optional[int]) -> str:
+def _count_active_jobs() -> Tuple[int, int]:
+    queued = 0
+    running = 0
+    for job in JOBS.values():
+        status = job.get("status")
+        if status == "queued":
+            queued += 1
+        elif status == "running":
+            running += 1
+    return queued, running
+
+
+def _check_queue_capacity() -> None:
+    queued, running = _count_active_jobs()
+    max_active = MAX_QUEUE_JOBS + 1  # 1 rodando + fila
+    if queued >= MAX_QUEUE_JOBS or (queued + running) >= max_active:
+        raise QueueFullError(
+            "A fila da DEMO está cheia no momento. Aguarde alguns minutos e tente novamente."
+        )
+
+
+def _check_rate_limit(client_ip: Optional[str]) -> None:
+    if not client_ip:
+        return
+    now = datetime.now(timezone.utc)
+    last = LAST_REQUEST_BY_IP.get(client_ip)
+    if last:
+        elapsed = (now - last).total_seconds()
+        if elapsed < RATE_LIMIT_SECONDS:
+            remaining = int(RATE_LIMIT_SECONDS - elapsed)
+            remaining = max(1, remaining)
+            raise RateLimitError(
+                f"Você acabou de iniciar uma busca. Aguarde {remaining}s para tentar novamente."
+            )
+    LAST_REQUEST_BY_IP[client_ip] = now
+
+
+def create_job(
+    city: str,
+    query: str,
+    state: Optional[str],
+    limit: Optional[int],
+    client_ip: Optional[str] = None,
+) -> str:
     job_id = uuid.uuid4().hex
-    effective_limit = limit or 20
-    effective_limit = max(1, min(effective_limit, 50))
+    effective_limit = limit or DEMO_MAX_LIMIT
+
+    if effective_limit > DEMO_MAX_LIMIT:
+        raise LimitExceededError(
+            f"Na DEMO o limite máximo é {DEMO_MAX_LIMIT} resultados por busca. "
+            "Reduza o limite e tente novamente."
+        )
+
+    effective_limit = max(1, min(effective_limit, DEMO_MAX_LIMIT))
 
     job = {
         "status": "queued",
@@ -94,6 +162,8 @@ def create_job(city: str, query: str, state: Optional[str], limit: Optional[int]
     }
 
     with JOBS_LOCK:
+        _check_queue_capacity()
+        _check_rate_limit(client_ip)
         JOBS[job_id] = job
 
     thread = threading.Thread(target=_run_job, args=(job_id,), daemon=True)
@@ -174,12 +244,16 @@ def _run_job(job_id: str) -> None:
                 error=None,
             )
         except Exception as exc:
+            print(f"[ERRO] Job {job_id} falhou: {exc}")
             _update_job(
                 job_id,
                 status="error",
                 progress=100,
                 message="Erro durante a execução.",
-                error=str(exc),
+                error=(
+                    "Não foi possível concluir a busca. O Google Maps pode ter demorado para responder. "
+                    "Tente novamente com menos resultados ou aguarde alguns minutos."
+                ),
             )
 
 

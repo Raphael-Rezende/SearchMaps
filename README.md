@@ -31,7 +31,8 @@ Os arquivos CSV/XLSX são gerados em `./exports/` (na raiz do projeto).
 
 **Observações importantes**
 A versão DEMO não usa SQLite e não mantém histórico persistente. Se o servidor reiniciar, os jobs somem.
-O limite padrão é 20 resultados por job, com máximo de 50.
+O limite padrão e máximo na DEMO é 10 resultados por job (configurável via SEARCHMAPS_DEMO_MAX_LIMIT).
+Para evitar travar o servidor, há fila e rate limit por IP (SEARCHMAPS_MAX_QUEUE_JOBS e SEARCHMAPS_RATE_LIMIT_SECONDS).
 Selenium/Chrome headless pode ter limitações em free-tier.
 
 **Deploy sugerido**

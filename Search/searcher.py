@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, StaleElementReferenceException, ElementClickInterceptedException
 
 import warnings
 
@@ -106,7 +106,7 @@ def _accept_consent_if_present():
     return False
 
 
-def _wait_for_results(timeout=20):
+def _wait_for_results(timeout=40):
     return WebDriverWait(driver, timeout).until(
         EC.presence_of_element_located((By.CLASS_NAME, "Nv2PK"))
     )
@@ -142,11 +142,11 @@ def buscar_estabelecimentos(
     _accept_consent_if_present()
 
     try:
-        _wait_for_results(timeout=20)
+        _wait_for_results(timeout=40)
     except TimeoutException:
         # Fallback: tenta usar o campo de busca manualmente
         try:
-            search_box = WebDriverWait(driver, 20).until(
+            search_box = WebDriverWait(driver, 30).until(
                 EC.presence_of_element_located((By.XPATH, "//input[@id='searchboxinput']"))
             )
             search_box.clear()
@@ -176,8 +176,19 @@ def buscar_estabelecimentos(
                 try:
                     if should_cancel and should_cancel():
                         return estabelecimentos
-                    elem.click()
+                    try:
+                        elem.click()
+                    except ElementClickInterceptedException:
+                        driver.execute_script("arguments[0].click();", elem)
+                    except StaleElementReferenceException:
+                        continue
                     time.sleep(1)
+                    try:
+                        WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located((By.CLASS_NAME, "DUwDvf"))
+                        )
+                    except TimeoutException:
+                        continue
                     endereco = ''
                     phone = ''
                     website = ''
